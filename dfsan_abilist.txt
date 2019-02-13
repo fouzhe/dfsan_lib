@@ -1,0 +1,8 @@
+fun:recv=uninstrumented
+fun:recv=custom
+fun:recvfrom=uninstrumented
+fun:recvfrom=custom
+fun:recvmsg=uninstrumented
+fun:recvmsg=custom
+fun:recvmmsg=uninstrumented
+fun:recvmmsg=custom
