@@ -8,26 +8,32 @@
 #include <inttypes.h>
 #include <sanitizer/dfsan_interface.h>
 #include "debug.h"
+#include "config.h"
+#include "label.h"
 
-static int granularity = 1; // byte level
-static char str[50];
+static int fd = 0;
 
 static void assign_taint_labels(void *buf, long offset, size_t size) 
 {
-  for (size_t i = 0; i < size; i += granularity) 
-  {
-    sprintf(str, "%lu", offset + i);
-
-    dfsan_label L = dfsan_create_label(str, 0);
-    
-    if (size < i + granularity)
+    static char str[50];
+    for (size_t i = 0; i < size; i += granularity) 
     {
-        dfsan_set_label(L, (char *)(buf) + offset + i, size - i);
-        dfsan_warning("The last label is less than granularity(value:%d) in func %s \n", granularity, __func__);
+        sprintf(str, "%lu", offset + i);
+
+        dfsan_label L = dfsan_create_label(str, 0);
+    
+        if (size < i + granularity)
+        {
+            dfsan_set_label(L, (char *)(buf) + offset + i, size - i);
+            dfsan_warning("The last label is less than granularity(value:%d) in func %s \n", granularity, __func__);
+            set_label(offset + i, offset + size - 1, L);
+        }
+        else
+        {
+            dfsan_set_label(L, (char *)(buf) + offset + i, granularity);
+            set_label(offset + i, offset + i + granularity - 1, L);
+        }
     }
-    else
-        dfsan_set_label(L, (char *)(buf) + offset + i, granularity);
-  }
 }
 
 static void assign_taint_labels_exf(void *buf, long offset, size_t ret, size_t size) 
@@ -36,12 +42,12 @@ static void assign_taint_labels_exf(void *buf, long offset, size_t ret, size_t s
         offset = 0;
     // if count is not so huge!
     int len = ret;
-    if (ret < size) 
-    {
-        int res = size - ret;
-        len = res < 1024? len + res : len + 1024;
-        dfsan_warning("The number read is less than [size] in func %s \n", __func__);
-    }
+    // if (ret < size) 
+    // {
+    //     int res = size - ret;
+    //     len = res < 1024? len + res : len + 1024;
+    //     dfsan_warning("The number read is less than [size] in func %s \n", __func__);
+    // }
     assign_taint_labels(buf, offset, len);
 }
 
@@ -59,7 +65,8 @@ __dfsw_recv (int __fd, void *__buf, size_t __n, int __flags,
 
     if(ret != -1)
     {
-        
+        assign_taint_labels_exf(__buf, fd, ret, __n);
+        fd += ret;
     }
 
     dfsan_debug("%s called, recv %d bytes\n", __func__, ret);

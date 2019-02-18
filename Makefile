@@ -13,6 +13,7 @@ LDFLAGS :=
 DEFINES :=
 INCLUDE := -I.
 CFLAGS  := -g -Wall -fPIC $(DEFINES) $(INCLUDE)
+RULE 	:= -fsanitize-blacklist=./dfsan_abilist.txt
 
 
 DIR_OBJS = objs
@@ -45,7 +46,7 @@ $(TARGET): $(OBJS)
 	$(RANLIB) $(TARGET)
 
 $(DIR_OBJS)/%.o: $(DIR_OBJS) %.c 
-	$(CC) $(CFLAGS) -o $@ -c $(filter %.c, $^)
+	$(CC) $(CFLAGS) $(RULE) -o $@ -c $(filter %.c, $^)
 
 $(DIR_DEPS)/%.dep: $(DIR_DEPS) %.c
 	@echo "Making $@ ..."
