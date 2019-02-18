@@ -14,3 +14,7 @@ fun:dfsan_warning=uninstrumented
 fun:dfsan_warning=discard
 fun:dfsan_error=uninstrumented
 fun:dfsan_error=discard
+fun:has_label=uninstrumented
+fun:has_label=discard
+fun:set_label=uninstrumented
+fun:set_label=discard
