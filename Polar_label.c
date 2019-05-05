@@ -8,8 +8,13 @@
 #include <sanitizer/dfsan_interface.h>
 #include "debug.h"
 #include "config.h"
+#include "Polar_label.h"
 
 static dfsan_label mask[MAP_SIZE];
+
+static unsigned int offset_max = 0;
+
+#  define MAX(_a,_b) ((_a) > (_b) ? (_a) : (_b))
 
 void set_label(int from, int to, dfsan_label L)
 {
@@ -30,17 +35,26 @@ void set_label(int from, int to, dfsan_label L)
     {
         mask[i] = L;
     }
+    offset_max = MAX(offset_all, to);
 }
 
-int has_label(dfsan_label L, int pos)
+Polar_range has_label(dfsan_label L)
 {
-    if(pos < 0 || pos >= MAP_SIZE)
-    {
-        dfsan_error("The variable pos is not in correct range in func %s\n",  __func__);
-        return 0;
-    }
-    
-    pos = pos / granularity * granularity;
+    Polar_range ans;
+    ans.start = ans.end = -1;
 
-    return dfsan_has_label(L, mask[pos]);
+    int i = 0;
+    for (i = 0; i <= offset_max; i++)
+    {
+        if(dfsan_has_label(L, mask[i]))
+        {
+            if(ans.start == -1)
+            {
+                ans.start = i;
+            }
+            ans.end = i;
+        }
+    }
+
+    return ans;
 }

@@ -9,14 +9,15 @@
 #include <sanitizer/dfsan_interface.h>
 #include "debug.h"
 #include "config.h"
-#include "label.h"
+#include "Polar_label.h"
 
-static int fd = 0;
+static unsigned int fd = 0;
 
-static void assign_taint_labels(void *buf, long offset, size_t size) 
+static void assign_taint_labels(void *buf, unsigned int offset, ssize_t size) 
 {
     static char str[50];
-    for (size_t i = 0; i < size; i += granularity) 
+    ssize_t i = 0;
+    for (i = 0; i < size; i += granularity) 
     {
         sprintf(str, "%lu", offset + i);
 
@@ -25,7 +26,7 @@ static void assign_taint_labels(void *buf, long offset, size_t size)
         if (size < i + granularity)
         {
             dfsan_set_label(L, (char *)(buf) + offset + i, size - i);
-            dfsan_warning("The last label is less than granularity(value:%d) in func %s \n", granularity, __func__);
+            dfsan_warning("The last label is less than granularity(value:%d) in function %s \n", granularity, __func__);
             set_label(offset + i, offset + size - 1, L);
         }
         else
@@ -36,18 +37,16 @@ static void assign_taint_labels(void *buf, long offset, size_t size)
     }
 }
 
-static void assign_taint_labels_exf(void *buf, long offset, size_t ret, size_t size) 
+static void assign_taint_labels_exf(void *buf, unsigned int offset, ssize_t ret, size_t size) 
 {
-    if (offset < 0)
-        offset = 0;
     // if count is not so huge!
-    int len = ret;
-    // if (ret < size) 
-    // {
-    //     int res = size - ret;
-    //     len = res < 1024? len + res : len + 1024;
-    //     dfsan_warning("The number read is less than [size] in func %s \n", __func__);
-    // }
+    ssize_t len = ret;
+    if (ret < size) 
+    {
+        // int res = size - ret;
+        // len = res < 1024? len + res : len + 1024;
+        dfsan_warning("The number of bytes read is less than that should be read([%d] bytes) in function %s \n", size, __func__);
+    }
     assign_taint_labels(buf, offset, len);
 }
 
@@ -69,7 +68,7 @@ __dfsw_recv (int __fd, void *__buf, size_t __n, int __flags,
         fd += ret;
     }
 
-    dfsan_debug("%s called, recv %d bytes\n", __func__, ret);
+    dfsan_debug("function %s called, recv %d bytes\n", __func__, ret);
 
     *ret_label = 0;
     return ret;
@@ -92,7 +91,13 @@ __dfsw_recvfrom (int __fd, void *__restrict __buf, size_t __n, int __flags,
 {
     ssize_t ret = recvfrom(__fd, __buf, __n, __flags, __addr, __addr_len);
 
-    dfsan_debug("%s called, recv %d bytes\n", __func__, ret);
+    if(ret != -1)
+    {
+        assign_taint_labels_exf(__buf, fd, ret, __n);
+        fd += ret;
+    }
+
+    dfsan_debug("function %s called, recv %d bytes\n", __func__, ret);
 
     *ret_label = 0;
     return ret;
@@ -111,7 +116,13 @@ __dfsw_recvmsg (int __fd, struct msghdr *__message, int __flags,
 {
     ssize_t ret = recvmsg(__fd, __message, __flags);
 
-    dfsan_debug("%s called, recv %d bytes\n", __func__, ret);
+    if(ret != -1)
+    {
+        assign_taint_labels_exf(__message, fd, ret, sizeof(struct msghdr));
+        fd += ret;
+    }
+
+    dfsan_debug("function %s called, recv %d bytes\n", __func__, ret);
 
     *ret_label = 0;
     return ret;
@@ -132,7 +143,13 @@ __dfsw_recvmmsg (int __fd, struct mmsghdr *__vmessages, unsigned int __vlen,
 {
     int ret = recvmmsg(__fd, __vmessages, __vlen, __flags, __tmo);
 
-    dfsan_debug("%s called, recv %d messages\n", __func__, ret);
+    if(ret != -1)
+    {
+        assign_taint_labels_exf(__vmessages, fd, ret, __vlen * sizeof(struct msghdr));
+        fd += ret;
+    }
+
+    dfsan_debug("function %s called, recv %d messages\n", __func__, ret);
 
     *ret_label = 0;
     return ret;
@@ -140,4 +157,27 @@ __dfsw_recvmmsg (int __fd, struct mmsghdr *__vmessages, unsigned int __vlen,
 #endif
 
 
+/* Read NBYTES into BUF from FD.  Return the
+   number read, -1 for errors or 0 for EOF.
+
+   This function is a cancellation point and therefore not marked with
+   __THROW.  */
+// __attribute__((visibility("default"))) ssize_t 
+// __dfsw_read (int __fd, void *__buf, size_t __nbytes,
+//             dfsan_label __fd_label, dfsan_label __buf_label, dfsan_label __nbytes_label,
+//             dfsan_label *ret_label)
+// {
+//     ssize_t ret = read(__fd, __buf, __nbytes);
+    
+//     if(ret != -1)
+//     {
+//         assign_taint_labels_exf(__buf, fd, ret, __nbytes);
+//         fd += ret;
+//     }
+
+//     dfsan_debug("function %s called, recv %d messages\n", __func__, ret);
+
+//     *ret_label = 0;
+//     return ret;
+// }
 

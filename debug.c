@@ -44,6 +44,7 @@ void dfsan_error(char *fmt, ...)
 	va_end(args);
 	printf("\033[0m");
 	fflush(stdout);
+	exit(1);
 }
 
 __attribute__((constructor)) void debug_init()
