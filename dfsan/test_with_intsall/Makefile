@@ -7,7 +7,7 @@ CC = clang
 CFLAGS = -g -O0 -fsanitize=dataflow -fPIC
 RULE = -fsanitize-blacklist=../dfsan_abilist.txt
 
-PREENY=/root/preeny/x86_64-linux-gnu/desock.so
+PREENY=/home/fouzhe/Polar/preeny/x86_64-linux-gnu/desock.so
 
 SRCS = $(wildcard *.c)
 TARGETS := $(basename $(SRCS))

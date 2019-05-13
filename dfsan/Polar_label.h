@@ -40,7 +40,7 @@ typedef struct Polar_range
 
 void set_label(int from, int to, dfsan_label L);
 Polar_range has_label(dfsan_label L);
-
+Polar_range Polar_check(dfsan_label L, int id);
 #ifdef __cplusplus
 }
 #endif

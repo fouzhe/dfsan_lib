@@ -162,22 +162,22 @@ __dfsw_recvmmsg (int __fd, struct mmsghdr *__vmessages, unsigned int __vlen,
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-// __attribute__((visibility("default"))) ssize_t 
-// __dfsw_read (int __fd, void *__buf, size_t __nbytes,
-//             dfsan_label __fd_label, dfsan_label __buf_label, dfsan_label __nbytes_label,
-//             dfsan_label *ret_label)
-// {
-//     ssize_t ret = read(__fd, __buf, __nbytes);
+__attribute__((visibility("default"))) ssize_t 
+__dfsw_read (int __fd, void *__buf, size_t __nbytes,
+            dfsan_label __fd_label, dfsan_label __buf_label, dfsan_label __nbytes_label,
+            dfsan_label *ret_label)
+{
+    ssize_t ret = read(__fd, __buf, __nbytes);
     
-//     if(ret != -1)
-//     {
-//         assign_taint_labels_exf(__buf, fd, ret, __nbytes);
-//         fd += ret;
-//     }
+    if(ret != -1)
+    {
+        assign_taint_labels_exf(__buf, fd, ret, __nbytes);
+        fd += ret;
+    }
 
-//     dfsan_debug("function %s called, recv %d messages\n", __func__, ret);
+    dfsan_debug("function %s called, recv %d messages\n", __func__, ret);
 
-//     *ret_label = 0;
-//     return ret;
-// }
+    *ret_label = 0;
+    return ret;
+}
 
